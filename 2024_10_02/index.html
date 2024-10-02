@@ -1,0 +1,100 @@
+<body style="margin: 0; overflow: hidden; position: relative">
+  <canvas id="c" style="position: absolute; height: 100%"></canvas>
+  <script>
+    c.width = W = 1920;
+    c.height = H = 1080;
+    d = c.getContext("2d");
+
+    function rng(seed) {
+      let m = 2 ** 35 - 31,
+        a = 185852,
+        s = seed ** 32 % m;
+      return (max) => ((max || 1) * (s = (s * a) % m)) / m;
+    }
+    R = (max = 1, min = 0) => min + (max - min) * rand();
+
+    let SEED, rand;
+
+    function reseed() {
+      SEED = Math.random();
+      t = 0;
+      rand = rng(SEED);
+      hand = new Hand(5, 100);
+    }
+
+    class Finger {
+      p1;
+      p2;
+      constructor(p1, p2) {
+        this.p1 = p1;
+        this.p2 = p2;
+      }
+    }
+
+    class Hand {
+      fingers;
+      color;
+
+      constructor(fingerCount, fingerLength) {
+        let fingers = [];
+        let palmPoint = { x: R(W - 200, 200), y: R(-100, -1080)};
+        for (let i = 0; i < fingerCount; i++) {
+          let angle = R(Math.PI * 2); // Random angle between 0 and 2π
+          let endX = palmPoint.x + Math.cos(angle) * fingerLength; // Fixed: use palmPoint.x
+          let endY = palmPoint.y + Math.sin(angle) * fingerLength; // Fixed: use palmPoint.y instead of root
+          let f = new Finger(palmPoint, { x: endX, y: endY });
+          fingers.push(f);
+        }
+
+        this.fingers = fingers;
+        this.color = `rgba(${R(255, 230)}, ${R(220, 170)}, ${R(180, 130)}, 0.8)`;
+      }
+
+      draw(t) {
+        let modFactor = 1080 * 2
+        // Draw the palm
+        d.beginPath();
+        d.arc(this.fingers[0].p1.x , (this.fingers[0].p1.y + (t % modFactor)), 20, 0, 2 * Math.PI);
+        d.fillStyle = this.color;
+        d.fill();
+
+        // Draw the fingers
+        d.lineWidth = 10;
+        d.lineCap = "round";
+        d.strokeStyle = this.color;
+
+        this.fingers.forEach((finger) => {
+          d.beginPath();
+          d.moveTo(finger.p1.x, finger.p1.y + (t % modFactor));
+          d.lineTo(finger.p2.x, finger.p2.y + (t % modFactor));
+          d.stroke();
+        });
+      }
+    }
+
+    reseed();
+
+    let hands = []
+    let handCount = R(40,15);
+    for (let i = 0; i < handCount; i++) {
+      hands.push(new Hand(R(8,3), R(120, 40)))
+    }
+    function draw() {
+      requestAnimationFrame(draw);
+      rand = rng(SEED);
+      t += 1;
+
+      // background color
+      let bg = R(240, 200);
+      d.fillStyle = `hsl(${bg}, 100%, 50%)`;
+      d.fillRect(0, 0, c.width, c.height);
+
+      hands.forEach(hand => hand.draw(t*5))      
+    }
+    draw();
+  </script>
+  <!-- <div style="position: absolute; right: 25px; top: 25px; border: 1px solid #ccc; background: #eee">
+    <input type="button" value="♽" onclick="reseed()" style="font-size: 2em" />
+  </div> -->
+</body>
+
